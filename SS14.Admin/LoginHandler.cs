@@ -47,6 +47,12 @@ namespace SS14.Admin
             }
 
             var flags = AdminHelper.GetStringFlags(adminData);
+			
+			if(!flags.Contains("BAN")) {
+				ctx.Response.Redirect(_linkGenerator.GetUriByPage(ctx.HttpContext, "/LoginFailed")!);
+                ctx.HandleResponse();
+				return;
+			}
 
             foreach (var flag in flags)
             {
