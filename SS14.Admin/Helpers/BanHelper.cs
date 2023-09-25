@@ -180,7 +180,7 @@ public sealed class BanHelper
         {
             var adminData = _dbContext.Admin.First(a => a.UserId == ban.BanningAdmin);
             var flags = AdminHelper.GetFlags(adminData);
-            if ((flags & AdminFlags.Ban) == 0)
+            if ((flags & AdminFlags.Ban) != flags)
             {
                 return "Error: Admin doesn't have Ban flag.";
             }
