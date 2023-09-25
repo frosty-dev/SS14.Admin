@@ -3,6 +3,7 @@ using System.Diagnostics.Contracts;
 using System.Net;
 using Content.Server.Database;
 using Microsoft.EntityFrameworkCore;
+using SS14.Admin.Admins;
 
 namespace SS14.Admin.Helpers;
 
@@ -174,6 +175,22 @@ public sealed class BanHelper
         }
 
         ban.BanningAdmin = _httpContext.HttpContext!.User.Claims.GetUserId();
+
+        try
+        {
+            var adminData = _dbContext.Admin.First(a => a.UserId == ban.BanningAdmin);
+            var flags = AdminHelper.GetFlags(adminData);
+            if ((flags & AdminFlags.Ban) == 0)
+            {
+                return "Error: Admin doesn't have Ban flag.";
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Unable to get admin flags");
+            return "Error: Unknown error occured while getting admin data.";;
+        }
+
         ban.Reason = reason;
         ban.BanTime = DateTime.UtcNow;
         return null;
