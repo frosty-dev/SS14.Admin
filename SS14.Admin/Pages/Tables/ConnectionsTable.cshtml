@@ -33,7 +33,7 @@
                 <br/>
             </td>
             <td class="monotype">@log.UserId</td>
-            <td>@log.Time.ToString("g")</td>
+            <td>@log.Time.ToString("yyyy-MM-dd HH:mm:ss")</td>
             <td class="monotype constrained-150">@log.Address</td>
             <td class="monotype constrained-150">@(log.HWId is { } hwid ? Convert.ToBase64String(hwid) : null)</td>
             <td>
@@ -47,6 +47,9 @@
                         break;
                     case ConnectionDenyReason.Full:
                         <strong>Denied: Server Full</strong>
+                        break;
+                    case ConnectionDenyReason.Panic:
+                        <strong>Denied: Panic Bunker</strong>
                         break;
                     case null:
                         <span>Accepted</span>
