@@ -7,11 +7,13 @@
     ViewData["Title"] = "Players";
 }
 
-<form asp-page="./Index" method="get" class="container">
+<form asp-page="./Index" method="get" class="container mb-3">
     @FormHiddenRoutes.Make(Model.AllRouteData, "search")
     <div class="form-group row">
         <label class="col-md-3" for="searchBar">Search name, ID or IP:</label>
-        <input type="text" id="searchBar" name="search" value="@Model.CurrentFilter" class="form-control form-control-sm col-md-7"/>
+        <div class="col-md-7">
+            <input type="text" id="searchBar" name="search" value="@Model.CurrentFilter" class="form-control form-control-sm"/>
+        </div>
         <input type="submit" value="Search" class="btn btn-primary col-md-1 btn-sm"/>
         <a class="btn btn-danger btn-sm col-md-1" asp-page="./Index">Clear</a>
     </div>
@@ -39,10 +41,10 @@
                 <strong>@player.LastSeenUserName</strong>
                 <br/>
             </td>
-            <td class="monotype small">@player.UserId</td>
+            <td class="font-monospace small">@player.UserId</td>
             <td>@player.LastSeenTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
-            <td class="monotype constrained-150">@player.LastSeenAddress</td>
-            <td class="monotype constrained-150">@BanHelper.FormatHwid(player.LastSeenHWId)</td>
+            <td class="font-monospace constrained-150">@player.LastSeenAddress</td>
+            <td class="font-monospace constrained-150">@BanHelper.FormatHwid(player.LastSeenHWId)</td>
             <td>@player.FirstSeenTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
             <td>
                 <a asp-page="/Players/Info" asp-route-userId="@player.UserId" class="btn btn-secondary">Player Info</a>

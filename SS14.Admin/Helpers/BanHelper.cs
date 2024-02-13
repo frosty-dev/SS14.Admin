@@ -1,9 +1,11 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Net;
+using System.Net.Sockets;
 using Content.Server.Database;
 using Microsoft.EntityFrameworkCore;
 using SS14.Admin.Admins;
+using NpgsqlTypes;
 
 namespace SS14.Admin.Helpers;
 
@@ -13,17 +15,20 @@ namespace SS14.Admin.Helpers;
 public sealed class BanHelper
 {
     private readonly PostgresServerDbContext _dbContext;
+    private readonly PlayerLocator _playerLocator;
     private readonly IConfiguration _configuration;
     private readonly ILogger<BanHelper> _logger;
     private readonly IHttpContextAccessor _httpContext;
 
     public BanHelper(
         PostgresServerDbContext dbContext,
+        PlayerLocator playerLocator,
         IConfiguration configuration,
         ILogger<BanHelper> logger,
         IHttpContextAccessor httpContext)
     {
         _dbContext = dbContext;
+        _playerLocator = playerLocator;
         _configuration = configuration;
         _logger = logger;
         _httpContext = httpContext;
@@ -46,7 +51,7 @@ public sealed class BanHelper
         return bans
             .Include(b => b.Unban)
             .LeftJoin(_dbContext.Player,
-                ban => ban.UserId, player => player.UserId,
+                ban => ban.PlayerUserId, player => player.UserId,
                 (ban, player) => new { ban, player })
             .LeftJoin(_dbContext.Player,
                 ban => ban.ban.BanningAdmin, admin => admin.UserId,
@@ -116,44 +121,30 @@ public sealed class BanHelper
         where TUnban : IUnbanCommon
     {
         if (string.IsNullOrWhiteSpace(nameOrUid) && string.IsNullOrWhiteSpace(ip) && string.IsNullOrWhiteSpace(hwid))
-            return "Error: Must provide at least one of name/UID, IP address or HWID.";
+            return "Must provide at least one of name/UID, IP address or HWID.";
 
         if (string.IsNullOrWhiteSpace(reason))
-            return "Error: Must provide reason.";
+            return "Must provide reason.";
 
         if (!string.IsNullOrWhiteSpace(nameOrUid))
         {
-            nameOrUid = nameOrUid.Trim();
-            if (Guid.TryParse(nameOrUid, out var guid))
-            {
-                ban.UserId = guid;
-            }
-            else
-            {
-                try
-                {
-                    ban.UserId = await FindPlayerGuidByNameAsync(nameOrUid);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, "Unable to fetch user ID from auth server");
-                    return "Error: Unknown error occured fetching user ID from auth server.";
-                }
-
-                if (ban.UserId == null)
-                {
-                    return $"Error: Unable to find user with name {nameOrUid}";
-                }
-            }
+            ban.PlayerUserId = await _playerLocator.Resolve(nameOrUid);
+            if (ban.PlayerUserId == null)
+                return $"Unable to find user with name {nameOrUid}";
         }
 
         if (!string.IsNullOrWhiteSpace(ip))
         {
             ip = ip.Trim();
             if (!IPHelper.TryParseIpOrCidr(ip, out var parsedAddr))
-                return "Error: Invalid IP address/CIDR range";
+                return "Invalid IP address/CIDR range";
 
-            ban.Address = parsedAddr;
+            var parsedIp = parsedAddr.Item1;
+            var parsedCidr = parsedAddr.Item2;
+            // Ban /64 on IPv6.
+            parsedCidr ??= (byte)(parsedIp.AddressFamily == AddressFamily.InterNetwork ? 32 : 64);
+
+            ban.Address = new NpgsqlInet(parsedIp, parsedCidr.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(hwid))
@@ -162,7 +153,7 @@ public sealed class BanHelper
             ban.HWId = new byte[Constants.HwidLength];
 
             if (!Convert.TryFromBase64String(hwid, ban.HWId, out _))
-                return "Error: Invalid HWID";
+                return "Invalid HWID";
         }
 
         if (lengthMinutes != 0)
@@ -195,38 +186,4 @@ public sealed class BanHelper
         ban.BanTime = DateTime.UtcNow;
         return null;
     }
-
-    private async Task<Guid?> FindPlayerGuidByNameAsync(string name)
-    {
-        // Try our own database first, in case this is a guest or something.
-
-        var player = await _dbContext.Player
-            .Where(p => p.LastSeenUserName == name)
-            .OrderByDescending(p => p.LastSeenTime)
-            .FirstOrDefaultAsync();
-
-        if (player != null)
-            return player.UserId;
-
-        var server = _configuration["AuthServer"];
-        var client = new HttpClient();
-
-        var url = $"{server}/api/query/name?name={Uri.EscapeDataString(name)}";
-
-        var resp = await client.GetAsync(url);
-        if (resp.StatusCode == HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-
-        resp.EnsureSuccessStatusCode();
-
-        return (await resp.Content.ReadFromJsonAsync<QueryUserResponse>())!.UserId;
-    }
-
-    private sealed record QueryUserResponse(
-        string UserName,
-        Guid UserId,
-        string? PatronTier,
-        DateTimeOffset CreatedTime);
 }
