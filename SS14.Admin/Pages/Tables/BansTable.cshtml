@@ -1,9 +1,13 @@
 ﻿@model SS14.Admin.Pages.Tables.BansTableModel
 
-
-<partial name="Tables/Pagination" for="Pagination"/>
-
-<table class="table table-striped mt-3">
+@{
+    var b = Model.PaginationState;
+    if (b == true)
+    {
+        <partial name="Tables/Pagination" for="Pagination"/>
+    }
+}
+    <table class="table table-striped mt-3">
     <thead>
     <tr>
         <th style="min-width: 210px">
@@ -50,14 +54,14 @@
                     if (ban.Address != null)
                     {
                         <small>
-                            <strong>IP:</strong> <span class="monotype">@ban.Address</span>
+                            <strong>IP:</strong> <span class="font-monospace">@ban.Address</span>
                         </small>
                         <br/>
                     }
                     if (ban.Hwid != null)
                     {
                         <small>
-                            <strong>HWID:</strong> <span class="monotype">@ban.Hwid</span>
+                            <strong>HWID:</strong> <span class="font-monospace">@ban.Hwid</span>
                         </small>
                         <br/>
                     }
@@ -65,7 +69,7 @@
                 @if (ban.UserId != null)
                 {
                     <small>
-                        <strong>GUID:</strong> <span class="monotype">@ban.UserId</span>
+                        <strong>GUID:</strong> <span class="font-monospace">@ban.UserId</span>
                     </small>
                 }
             </td>
@@ -111,4 +115,7 @@
     </tbody>
 </table>
 
+@if (b == true)
+{
 <partial name="Tables/Pagination" for="Pagination"/>
+}
