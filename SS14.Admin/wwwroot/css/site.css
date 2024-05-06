@@ -19,6 +19,10 @@ for details on configuring this project to bundle and minify static web assets. 
     --color-filter-type: #F78764;
 }
 
+* {
+    border-radius: 0 !important;
+}
+
 a.navbar-brand {
   white-space: normal;
   text-align: center;
@@ -91,6 +95,7 @@ html {
 body {
   /* Margin bottom by footer height */
   margin-bottom: 60px;
+  font-family: Roboto, sans-serif;
 }
 .footer {
   position: absolute;

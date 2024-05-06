@@ -144,7 +144,7 @@ namespace SS14.Admin.Pages
         public sealed record Ban(
             int Id,
             Player? Player,
-            string? UserId,
+            string? PlayerUserId,
             string? Address,
             string? Hwid,
             string Reason,

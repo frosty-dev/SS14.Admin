@@ -143,7 +143,7 @@ public class Index : PageModel
     public sealed record RoleBan(
         int Id,
         Player? Player,
-        string? UserId,
+        string? PlayerUserId,
         string? Address,
         string? Hwid,
         string Reason,
